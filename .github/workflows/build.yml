@@ -1,0 +1,76 @@
+name: Build Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_id:
+        description: 'Salesforce OAuth Client ID'
+        required: false
+        type: string
+      
+      redirect_uri:
+        description: 'OAuth Redirect URI'
+        required: false
+        type: string
+
+jobs:
+  build:
+    name: Build Salesforce Plugin
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup environment variables
+        run: |
+          touch .env
+          
+          if [ -n "${{ inputs.client_id }}" ]; then
+            echo "VITE_CLIENT_ID=${{ inputs.client_id }}" >> .env
+          elif [ -n "${{ secrets.VITE_CLIENT_ID }}" ]; then
+            echo "VITE_CLIENT_ID=${{ secrets.VITE_CLIENT_ID }}" >> .env
+          else
+            echo "❌ Error: VITE_CLIENT_ID not provided (set as secret or workflow input)"
+            exit 1
+          fi
+          
+          if [ -n "${{ inputs.redirect_uri }}" ]; then
+            echo "VITE_REDIRECT_URI=${{ inputs.redirect_uri }}" >> .env
+          elif [ -n "${{ secrets.VITE_REDIRECT_URI }}" ]; then
+            echo "VITE_REDIRECT_URI=${{ secrets.VITE_REDIRECT_URI }}" >> .env
+          else
+            echo "❌ Error: VITE_REDIRECT_URI not provided (set as secret or workflow input)"
+            exit 1
+          fi
+          
+          echo "Environment variables configured"
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Build and package plugin
+        run: npm run package
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: salesforce-plugin
+          path: dist/
+          retention-days: 30
+
+      - name: Upload plugin zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: salesforce-plugin-zip
+          path: salesforce-plugin.zip
+          retention-days: 30

@@ -1,0 +1,152 @@
+name: Release Plugin
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'resources/**'
+      - 'translations/**'
+      - 'package.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'CHANGELOG.md'
+
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'resources/**'
+      - 'translations/**'
+      - 'package.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'CHANGELOG.md'
+
+jobs:
+  build:
+    name: Build Salesforce Plugin
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup environment variables
+        run: |
+          touch .env
+          
+          if [ -z "${{ secrets.VITE_CLIENT_ID }}" ]; then
+            echo "❌ Error: VITE_CLIENT_ID secret not set"
+            exit 1
+          fi
+          echo "VITE_CLIENT_ID=${{ secrets.VITE_CLIENT_ID }}" >> .env
+          
+          if [ -z "${{ secrets.VITE_REDIRECT_URI }}" ]; then
+            echo "❌ Error: VITE_REDIRECT_URI secret not set"
+            exit 1
+          fi
+          echo "VITE_REDIRECT_URI=${{ secrets.VITE_REDIRECT_URI }}" >> .env
+          
+          echo "Environment variables configured"
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Build and package plugin
+        run: npm run package
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: salesforce-plugin
+          path: dist/
+          retention-days: 30
+
+      - name: Upload plugin zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: salesforce-plugin-zip
+          path: salesforce-plugin.zip
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version and changelog
+        id: version
+        run: |
+          VERSION=$(grep -m 1 '^##' CHANGELOG.md | sed 's/^## *//')
+          echo "version=v${VERSION}" >> $GITHUB_OUTPUT
+          echo "raw_version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: v${VERSION}"
+          
+          CHANGELOG=$(awk '/^## /{if(seen)exit; seen=1; next} {if(seen)print}' CHANGELOG.md | sed '/^$/d')
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check if release exists
+        id: check_release
+        run: |
+          if gh release view "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release ${{ steps.version.outputs.version }} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Release ${{ steps.version.outputs.version }} does not exist"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download plugin zip
+        uses: actions/download-artifact@v4
+        with:
+          name: salesforce-plugin-zip
+          path: ./artifacts
+
+      - name: Create GitHub Release
+        if: steps.check_release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: |
+            ./artifacts/salesforce-plugin.zip
+          body: |
+            ## What's Changed
+            
+            ${{ steps.version.outputs.changelog }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
