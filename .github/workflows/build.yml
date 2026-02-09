@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       client_id:
-        description: 'Salesforce OAuth Client ID'
+        description: 'Salesforce Client ID'
         required: false
         type: string
       
       redirect_uri:
-        description: 'OAuth Redirect URI'
+        description: 'Salesforce Redirect URI'
         required: false
         type: string
 
@@ -66,11 +66,4 @@ jobs:
         with:
           name: salesforce-plugin
           path: dist/
-          retention-days: 30
-
-      - name: Upload plugin zip
-        uses: actions/upload-artifact@v4
-        with:
-          name: salesforce-plugin-zip
-          path: salesforce-plugin.zip
           retention-days: 30
