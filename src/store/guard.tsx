@@ -30,17 +30,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const { path, route } = useLocation();
 
   useSignalEffect(() => {
-    console.log('[AuthGuard] Checking authentication:', {
-      isAuthenticated: isAuthenticated.value,
-      currentPath: path,
-    });
-    
-    if (!isAuthenticated.value && path !== '/login') {
-      console.log('[AuthGuard] Not authenticated, redirecting to /login');
-      route('/login');
-    } else if (isAuthenticated.value && path === '/login') {
-      console.log('[AuthGuard] Already authenticated on login page, staying on /login');
-    }
+    if (!isAuthenticated.value && path !== '/login') route('/login');
   });
 
   return <>{children}</>;
