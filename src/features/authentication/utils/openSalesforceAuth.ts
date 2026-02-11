@@ -21,8 +21,7 @@ const SALESFORCE_URLS = {
   sandbox: 'https://test.salesforce.com',
 };
 
-export function openSalesforceAuth(environment: 'production' | 'sandbox' = 'production'): void {
-  const clientId = import.meta.env.VITE_CLIENT_ID;
+export function openSalesforceAuth(clientId: string, environment: 'production' | 'sandbox' = 'production'): void {
   const redirectUri = import.meta.env.VITE_REDIRECT_URI;
   const baseUrl = SALESFORCE_URLS[environment];
 

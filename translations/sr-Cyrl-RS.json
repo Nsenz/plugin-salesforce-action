@@ -31,6 +31,8 @@
 		"logout_confirm": "Are you sure you want to log out of Salesforce? SR-C",
 		"please_login": "Please login with your Salesforce account to continue. SR-C",
 		"authorize_description": "Click to authorize this sheet to connect to Salesforce. SR-C",
+		"client_id": "Client ID SR-C",
+		"client_id_placeholder": "Enter your Connected App Consumer Key SR-C",
 		"environment": "Environment SR-C",
 		"production": "Production SR-C",
 		"sandbox": "Sandbox SR-C"

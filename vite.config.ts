@@ -22,7 +22,6 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import { fileURLToPath, URL } from "node:url";
 
 const REQUIRED_ENV_VARS = [
-  "VITE_CLIENT_ID",
   "VITE_REDIRECT_URI",
 ];
 

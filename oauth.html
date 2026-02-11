@@ -19,215 +19,24 @@
     * limitations under the License.
     *
     -->
-    <title>Salesforce OAuth</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .success { background: #f0fff4; border-left: 4px solid #2ecc71; padding: 15px; margin: 15px 0; }
-        .error { background: #fff5f5; border-left: 4px solid #ff4757; padding: 15px; margin: 15px 0; }
-        .warning { background: #fff9e6; border-left: 4px solid #ffa502; padding: 15px; margin: 15px 0; }
-        .debug { background: #f0f0f0; padding: 10px; border-radius: 4px; font-size: 11px; font-family: monospace; margin: 15px 0; word-break: break-all; }
-        button { background: #ff4757; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 10px; }
-        h2 { margin-top: 0; }
-    </style>
+    <title>Salesforce</title>
 </head>
-<body>
-    <div id="content">Loading...</div>
-    
+<body spellcheck="false" class="noselect">
     <script>
         (function () {
             function parseLocation() {
-                console.log('[OAuth] ============================================');
-                console.log('[OAuth] Callback page loaded at:', new Date().toISOString());
-                console.log('[OAuth] Full URL:', window.location.href);
-                console.log('[OAuth] Protocol:', window.location.protocol);
-                console.log('[OAuth] Host:', window.location.host);
-                console.log('[OAuth] Pathname:', window.location.pathname);
-                console.log('[OAuth] Window opener exists:', !!window.opener);
-                console.log('[OAuth] Window opener closed:', window.opener ? window.opener.closed : 'N/A');
-                
-                const hash = window.location.hash.slice(1);
-                const search = window.location.search.slice(1);
-                
-                console.log('[OAuth] Hash fragment:', hash);
-                console.log('[OAuth] Hash length:', hash.length);
-                console.log('[OAuth] Search params:', search);
-                console.log('[OAuth] Search length:', search.length);
-                console.log('[OAuth] ============================================');
-                
-                // Check for OAuth error in search params
-                if (search) {
-                    const searchParams = new URLSearchParams(search);
-                    console.log('[OAuth] All search parameters:', Object.fromEntries(searchParams));
-                    
-                    if (searchParams.has('error')) {
-                        var error = searchParams.get('error');
-                        var errorDesc = searchParams.get('error_description');
-                        var errorUri = searchParams.get('error_uri');
-                        var state = searchParams.get('state');
-                        
-                        console.error('[OAuth] ==================== ERROR DETECTED ====================');
-                        console.error('[OAuth] Error Code:', error);
-                        console.error('[OAuth] Error Description:', errorDesc);
-                        console.error('[OAuth] Error URI:', errorUri);
-                        console.error('[OAuth] State:', state);
-                        console.error('[OAuth] Timestamp:', new Date().toISOString());
-                        console.error('[OAuth] Referrer:', document.referrer);
-                        console.error('[OAuth] ==================================================');
-                        
-                        // Display error in the page - DON'T CLOSE
-                        document.getElementById('content').innerHTML = 
-                            '<h2 style="color: #ff4757;">🚫 OAuth Error</h2>' +
-                            '<div class="error">' +
-                            '<strong>Error Code:</strong> ' + error + '<br><br>' +
-                            '<strong>Description:</strong> ' + (errorDesc || 'No description provided') +
-                            '</div>' +
-                            '<h3>Debug Information</h3>' +
-                            '<div class="debug">' +
-                            '<strong>Full URL:</strong><br>' + window.location.href + '<br><br>' +
-                            '<strong>Error Code:</strong> ' + error + '<br>' +
-                            '<strong>Description:</strong> ' + (errorDesc || 'None') + '<br>' +
-                            '<strong>Error URI:</strong> ' + (errorUri || 'None') + '<br>' +
-                            '<strong>State:</strong> ' + (state || 'None') + '<br>' +
-                            '<strong>Referrer:</strong> ' + (document.referrer || 'None') + '<br>' +
-                            '<strong>Timestamp:</strong> ' + new Date().toISOString() + '<br>' +
-                            '<strong>All Search Params:</strong> ' + search +
-                            '</div>' +
-                            '<div class="warning">' +
-                            '<strong>⚠️ Troubleshooting Tips:</strong><br><br>' +
-                            '1. Verify "Permitted Users" = "All users can self-authorize"<br>' +
-                            '2. Check "IP Relaxation" = "Relax IP restrictions"<br>' +
-                            '3. Wait 5-10 minutes after changing settings<br>' +
-                            '4. Ensure Connected App is in the SAME Salesforce org you\'re logging into<br>' +
-                            '5. Check your Salesforce edition supports external OAuth<br>' +
-                            '6. Try creating the Connected App in the target org instead' +
-                            '</div>' +
-                            '<p style="color: #666; font-size: 14px;">💡 Press F12 to see detailed console logs (leave this window open)</p>' +
-                            '<button onclick="window.close()">Close Window</button>';
-                        
-                        // Send error to parent window
-                        if (window.opener && !window.opener.closed) {
-                            console.log('[OAuth] Sending error to parent window');
-                            try {
-                                window.opener.postMessage({ 
-                                    type: 'salesforce_auth_error', 
-                                    error: error,
-                                    error_description: errorDesc,
-                                    error_uri: errorUri,
-                                    state: state,
-                                    timestamp: new Date().toISOString(),
-                                    full_url: window.location.href
-                                }, '*');
-                                console.log('[OAuth] ✅ Error sent to parent');
-                            } catch (e) {
-                                console.error('[OAuth] ❌ Failed to send error to parent:', e);
-                            }
-                        } else {
-                            console.error('[OAuth] Cannot send error to parent - opener not available');
-                        }
-                        
-                        // DON'T CLOSE - user requested to keep open for debugging
-                        return;
-                    }
-                }
-                
-                // Check if window opener is available
-                if (!window.opener) {
-                    console.error('[OAuth] No opener window found - popup may have lost reference to parent');
-                    document.getElementById('content').innerHTML = 
-                        '<h2 style="color: #ff4757;">Connection Lost</h2>' +
-                        '<div class="error">Authentication window lost connection to parent.<br>Please close this window and try again.</div>' +
-                        '<button onclick="window.close()">Close Window</button>';
-                    return;
-                }
-                
-                if (window.opener.closed) {
-                    console.error('[OAuth] Opener window is closed');
-                    document.getElementById('content').innerHTML = 
-                        '<h2 style="color: #ff4757;">Parent Window Closed</h2>' +
-                        '<div class="error">The parent window was closed.<br>Please close this window.</div>' +
-                        '<button onclick="window.close()">Close Window</button>';
-                    return;
-                }
-                
-                // Check for successful OAuth response in hash
-                if (hash) {
+                try {
+                    const hash = window.location.hash.slice(1);
+                    if (hash && window.opener) {
                         const params = Object.fromEntries(new URLSearchParams(hash));
-                    console.log('[OAuth] ==================== SUCCESS ====================');
-                    console.log('[OAuth] Parsed params:', params);
-                    console.log('[OAuth] Has access_token:', !!params.access_token);
-                    console.log('[OAuth] Has instance_url:', !!params.instance_url);
-                    console.log('[OAuth] Has id:', !!params.id);
-                    console.log('[OAuth] Token type:', params.token_type);
-                    console.log('[OAuth] Issued at:', params.issued_at);
-                    console.log('[OAuth] Scope:', params.scope);
-                    console.log('[OAuth] ==================================================');
-                    
-                    // Display success message
-                    document.getElementById('content').innerHTML = 
-                        '<h2 style="color: #2ecc71;">✅ Authentication Successful!</h2>' +
-                        '<div class="success">' +
-                        '<strong>Access token received successfully</strong><br><br>' +
-                        'Sending authentication data to plugin...<br>' +
-                        'This window will close in 3 seconds.' +
-                        '</div>' +
-                        '<div class="debug">' +
-                        'Token type: ' + (params.token_type || 'N/A') + '<br>' +
-                        'Issued at: ' + (params.issued_at || 'N/A') + '<br>' +
-                        'Instance URL: ' + (params.instance_url || 'N/A') +
-                        '</div>';
-                    
-                    console.log('[OAuth] Posting message to opener');
-                    
-                    try {
                         window.opener.postMessage({ type: 'salesforce_auth', params }, '*');
-                        console.log('[OAuth] ✅ Message posted successfully to parent window');
-                        
-                        // Close after delay
-                        setTimeout(function() {
-                            console.log('[OAuth] Closing window...');
-                            window.close();
-                        }, 3000);
-                    } catch (e) {
-                        console.error('[OAuth] ❌ Failed to post message:', e);
-                        document.getElementById('content').innerHTML += 
-                            '<div class="error"><strong>Error sending to parent window:</strong> ' + e.message + '</div>' +
-                            '<button onclick="window.close()">Close Window</button>';
                     }
-                } else {
-                    console.warn('[OAuth] ==================== NO HASH ====================');
-                    console.warn('[OAuth] No hash fragment found in URL');
-                    console.warn('[OAuth] This might be initial redirect - waiting for Salesforce');
-                    console.warn('[OAuth] Current URL:', window.location.href);
-                    console.warn('[OAuth] ==================================================');
-                    
-                    // Show waiting message - DON'T CLOSE
-                    document.getElementById('content').innerHTML = 
-                        '<h2 style="color: #ffa502;">⏳ Waiting for Salesforce...</h2>' +
-                        '<div class="warning">' +
-                        'OAuth callback received but no authentication token in URL.<br><br>' +
-                        'Salesforce may still be processing your login...' +
-                        '</div>' +
-                        '<div class="debug">URL: ' + window.location.href + '</div>' +
-                        '<p style="color: #666; font-size: 14px;">If this persists for more than 30 seconds, there may be an issue with the OAuth flow.</p>' +
-                        '<button onclick="window.close()">Close Window</button>';
+                } finally {
+                    window.close();
                 }
             }
 
-            // Run on both DOMContentLoaded and load to catch different timing scenarios
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', parseLocation);
-            } else {
-                parseLocation();
-            }
-            
-            window.addEventListener('load', function() {
-                console.log('[OAuth] Window load event fired');
-            });
+            window.onload = parseLocation;
         })();
     </script>
 </body>

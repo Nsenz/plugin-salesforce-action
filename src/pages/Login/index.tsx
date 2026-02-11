@@ -38,6 +38,7 @@ export function Login() {
   const { authenticate } = useAuthentication();
 
   const [environment, setEnvironment] = useState<Environment>('production');
+  const [clientId, setClientId] = useState(() => localStorage.getItem('salesforce_client_id') ?? '');
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -51,8 +52,15 @@ export function Login() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  const handleClientIdChange = (e: Event) => {
+    const { value } = e.target as HTMLInputElement;
+    setClientId(value);
+    localStorage.setItem('salesforce_client_id', value);
+  };
+
   const handleAuthorize = () => {
-    openSalesforceAuth(environment);
+    if (!clientId.trim()) return;
+    openSalesforceAuth(clientId.trim(), environment);
   };
 
   if (!isReady) {
@@ -68,6 +76,22 @@ export function Login() {
       <div className="login-page__content">
         <div className="login-page__spacing">
           <Paragraph>{t('auth.please_login')}</Paragraph>
+        </div>
+
+        <div className="login-page__label-spacing">
+          <Label>
+            {t('auth.client_id')}
+            :
+          </Label>
+        </div>
+        <div className="login-page__spacing">
+          <input
+            className="login-page__input"
+            type="text"
+            value={clientId}
+            onInput={handleClientIdChange}
+            placeholder={t('auth.client_id_placeholder')}
+          />
         </div>
 
         <div className="login-page__label-spacing">
@@ -91,7 +115,7 @@ export function Login() {
           <Paragraph>{t('auth.authorize_description')}</Paragraph>
         </div>
 
-        <Button variant="primary" fullWidth onClick={handleAuthorize}>
+        <Button variant="primary" fullWidth onClick={handleAuthorize} disabled={!clientId.trim()}>
           {t('auth.login')}
         </Button>
       </div>

@@ -31,6 +31,8 @@
 		"logout_confirm": "Are you sure you want to log out of Salesforce? ES",
 		"please_login": "Please login with your Salesforce account to continue. ES",
 		"authorize_description": "Click to authorize this sheet to connect to Salesforce. ES",
+		"client_id": "Client ID ES",
+		"client_id_placeholder": "Enter your Connected App Consumer Key ES",
 		"environment": "Environment ES",
 		"production": "Production ES",
 		"sandbox": "Sandbox ES"

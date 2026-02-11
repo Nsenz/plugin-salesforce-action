@@ -15,7 +15,6 @@ help:
 	@echo "  make lint-fix      - Run linter and fix issues"
 	@echo ""
 	@echo "Required environment variables:"
-	@echo "  VITE_CLIENT_ID               - Salesforce OAuth Client ID"
 	@echo "  VITE_REDIRECT_URI            - OAuth callback URL"
 
 install:
@@ -25,10 +24,6 @@ install:
 
 build:
 	@echo "Building plugin..."
-	@if [ -z "$(VITE_CLIENT_ID)" ]; then \
-		echo "Error: VITE_CLIENT_ID environment variable is not set"; \
-		exit 1; \
-	fi
 	@if [ -z "$(VITE_REDIRECT_URI)" ]; then \
 		echo "Error: VITE_REDIRECT_URI environment variable is not set"; \
 		exit 1; \
