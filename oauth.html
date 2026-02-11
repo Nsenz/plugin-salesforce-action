@@ -40,8 +40,26 @@
                 if (search) {
                     const searchParams = new URLSearchParams(search);
                     if (searchParams.has('error')) {
-                        console.error('[OAuth] OAuth error:', searchParams.get('error'));
-                        console.error('[OAuth] Error description:', searchParams.get('error_description'));
+                        var error = searchParams.get('error');
+                        var errorDesc = searchParams.get('error_description');
+                        console.error('[OAuth] OAuth error:', error);
+                        console.error('[OAuth] Error description:', errorDesc);
+                        
+                        // Send error to parent window
+                        if (window.opener && !window.opener.closed) {
+                            console.log('[OAuth] Sending error to parent window');
+                            window.opener.postMessage({ 
+                                type: 'salesforce_auth_error', 
+                                error: error,
+                                error_description: errorDesc
+                            }, '*');
+                            
+                            setTimeout(function() {
+                                console.log('[OAuth] Closing window after error');
+                                window.close();
+                            }, 500);
+                        }
+                        return;
                     }
                 }
                 
@@ -97,5 +115,4 @@
         })();
     </script>
 </body>
-</html>
 </html>

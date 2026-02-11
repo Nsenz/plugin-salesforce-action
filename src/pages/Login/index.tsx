@@ -20,7 +20,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 
 import {
-  Button, Label, Select, Paragraph,
+  Button, Label, Select, Paragraph, ErrorBox,
 } from '@components';
 import { useAuthentication, openSalesforceAuth } from '@features/authentication';
 
@@ -38,6 +38,8 @@ export function Login() {
   const { authenticate } = useAuthentication();
 
   const [environment, setEnvironment] = useState<Environment>('production');
+
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('[Login] Setting up message listener');
@@ -64,7 +66,14 @@ export function Login() {
           route('/');
         } catch (error) {
           console.error('[Login] Authentication failed:', error);
+          setError('Authentication failed. Please try again.');
         }
+      } else if (event.data?.type === 'salesforce_auth_error') {
+        console.error('[Login] OAuth error received:', event.data.error);
+        console.error('[Login] Error description:', event.data.error_description);
+        
+        const errorMsg = event.data.error_description || event.data.error || 'Unknown error';
+        setError(errorMsg);
       } else {
         console.log('[Login] Ignoring message (not salesforce_auth or missing params)');
       }
@@ -79,6 +88,7 @@ export function Login() {
 
   const handleAuthorize = () => {
     console.log('[Login] Initiating Salesforce authorization for environment:', environment);
+    setError(null); // Clear any previous errors
     openSalesforceAuth(environment);
   };
 
@@ -93,6 +103,23 @@ export function Login() {
   return (
     <div className="login-page page-enter">
       <div className="login-page__content">
+        {error && (
+          <div className="login-page__spacing">
+            <ErrorBox 
+              title={t('common.error')} 
+              message={error}
+            />
+            {error.includes('Cross-org') && (
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                <Paragraph>
+                  This error occurs when your Salesforce Connected App is not configured to allow cross-organization OAuth flows.
+                  Please ensure your Connected App settings allow access from different organizations.
+                </Paragraph>
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="login-page__spacing">
           <Paragraph>{t('auth.please_login')}</Paragraph>
         </div>
