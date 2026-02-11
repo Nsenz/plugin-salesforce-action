@@ -99,7 +99,7 @@ function createAuthenticationStore(): AuthenticationStore {
       hasId: !!authentication.id,
       hasInstanceUrl: !!authentication.instance_url,
       issuedAt: authentication.issued_at,
-      issuedAtDate: new Date(parseInt(authentication.issued_at)).toISOString(),
+      issuedAtDate: new Date(authentication.issued_at).toISOString(),
     });
     
     const expiresAt = Math.floor(authentication.issued_at / 1000) + TOKEN_LIFETIME_SECONDS;

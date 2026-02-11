@@ -49,10 +49,27 @@ export function Login() {
         type: event.data?.type,
         origin: event.origin,
         hasParams: !!event.data?.params,
+        hasError: !!event.data?.error,
+        fullData: event.data,
       });
       
-      if (event.data?.type === 'salesforce_auth' && event.data.params) {
-        console.log('[Login] Salesforce auth message received');
+      const messageType = event.data?.type;
+      console.log('[Login] Message type check:', {
+        messageType,
+        isSalesforceAuth: messageType === 'salesforce_auth',
+        isSalesforceAuthError: messageType === 'salesforce_auth_error',
+        typeOfMessageType: typeof messageType,
+      });
+      
+      if (messageType === 'salesforce_auth_error') {
+        console.log('[Login] MATCHED salesforce_auth_error');
+        console.error('[Login] OAuth error received:', event.data.error);
+        console.error('[Login] Error description:', event.data.error_description);
+        
+        const errorMsg = event.data.error_description || event.data.error || 'Unknown error';
+        setError(errorMsg);
+      } else if (messageType === 'salesforce_auth' && event.data.params) {
+        console.log('[Login] MATCHED salesforce_auth');
         console.log('[Login] Auth params:', {
           hasAccessToken: !!event.data.params.access_token,
           hasId: !!event.data.params.id,
@@ -68,14 +85,9 @@ export function Login() {
           console.error('[Login] Authentication failed:', error);
           setError('Authentication failed. Please try again.');
         }
-      } else if (event.data?.type === 'salesforce_auth_error') {
-        console.error('[Login] OAuth error received:', event.data.error);
-        console.error('[Login] Error description:', event.data.error_description);
-        
-        const errorMsg = event.data.error_description || event.data.error || 'Unknown error';
-        setError(errorMsg);
       } else {
-        console.log('[Login] Ignoring message (not salesforce_auth or missing params)');
+        console.log('[Login] NO MATCH - Ignoring message');
+        console.log('[Login] Message type was:', messageType);
       }
     };
 

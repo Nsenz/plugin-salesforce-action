@@ -45,6 +45,23 @@
                         console.error('[OAuth] OAuth error:', error);
                         console.error('[OAuth] Error description:', errorDesc);
                         
+                        // Display error in the page
+                        document.body.innerHTML = 
+                            '<div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">' +
+                            '<h2 style="color: #ff4757; margin-top: 0;">OAuth Error</h2>' +
+                            '<div style="background: #fff5f5; border-left: 4px solid #ff4757; padding: 15px; margin: 15px 0;">' +
+                            '<strong>Error:</strong> ' + error + '<br><br>' +
+                            '<strong>Description:</strong> ' + (errorDesc || 'No description provided') +
+                            '</div>' +
+                            '<p style="color: #666; font-size: 14px;">Check the console (F12) for detailed logs.</p>' +
+                            '<p style="color: #666; font-size: 14px;">This error has been sent to the main window.</p>' +
+                            '<button onclick="window.close()" style="' +
+                            'background: #ff4757; color: white; border: none; padding: 10px 20px; ' +
+                            'border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 10px;">' +
+                            'Close Window' +
+                            '</button>' +
+                            '</div>';
+                        
                         // Send error to parent window
                         if (window.opener && !window.opener.closed) {
                             console.log('[OAuth] Sending error to parent window');
@@ -53,11 +70,6 @@
                                 error: error,
                                 error_description: errorDesc
                             }, '*');
-                            
-                            setTimeout(function() {
-                                console.log('[OAuth] Closing window after error');
-                                window.close();
-                            }, 500);
                         }
                         return;
                     }
