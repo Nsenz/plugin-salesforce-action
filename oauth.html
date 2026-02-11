@@ -25,19 +25,77 @@
     <script>
         (function () {
             function parseLocation() {
-                try {
-                    const hash = window.location.hash.slice(1);
-                    if (hash && window.opener) {
-                        const params = Object.fromEntries(new URLSearchParams(hash));
-                        window.opener.postMessage({ type: 'salesforce_auth', params }, '*');
+                console.log('[OAuth] Callback page loaded');
+                console.log('[OAuth] Full URL:', window.location.href);
+                console.log('[OAuth] Window opener exists:', !!window.opener);
+                console.log('[OAuth] Window opener closed:', window.opener ? window.opener.closed : 'N/A');
+                
+                const hash = window.location.hash.slice(1);
+                const search = window.location.search.slice(1);
+                
+                console.log('[OAuth] Hash fragment:', hash);
+                console.log('[OAuth] Search params:', search);
+                
+                // Check for OAuth error in search params
+                if (search) {
+                    const searchParams = new URLSearchParams(search);
+                    if (searchParams.has('error')) {
+                        console.error('[OAuth] OAuth error:', searchParams.get('error'));
+                        console.error('[OAuth] Error description:', searchParams.get('error_description'));
                     }
-                } finally {
+                }
+                
+                if (!window.opener) {
+                    console.error('[OAuth] No opener window found - popup may have lost reference to parent');
+                    document.body.innerHTML = '<p style="padding:20px">Authentication window lost connection to parent. Please close this window and try again.</p>';
+                    return;
+                }
+                
+                if (window.opener.closed) {
+                    console.error('[OAuth] Opener window is closed');
                     window.close();
+                    return;
+                }
+                
+                if (hash) {
+                    const params = Object.fromEntries(new URLSearchParams(hash));
+                    console.log('[OAuth] Parsed params:', params);
+                    console.log('[OAuth] Has access_token:', !!params.access_token);
+                    console.log('[OAuth] Has error:', !!params.error);
+                    console.log('[OAuth] Posting message to opener');
+                    console.log('[OAuth] Opener origin:', window.opener.location ? window.opener.location.origin : 'Cannot access (cross-origin)');
+                    
+                    try {
+                        window.opener.postMessage({ type: 'salesforce_auth', params }, '*');
+                        console.log('[OAuth] Message posted successfully');
+                    } catch (e) {
+                        console.error('[OAuth] Failed to post message:', e);
+                    }
+                    
+                    // Longer delay to ensure message is received before closing
+                    setTimeout(function() {
+                        console.log('[OAuth] Closing popup window');
+                        window.close();
+                    }, 500);
+                } else {
+                    console.warn('[OAuth] No hash fragment found in URL');
+                    console.warn('[OAuth] This might be an initial redirect - waiting for Salesforce to redirect back with token');
+                    // Don't close immediately - Salesforce might still be processing
                 }
             }
 
-            window.onload = parseLocation;
+            // Run on both load and DOMContentLoaded to catch different timing scenarios
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', parseLocation);
+            } else {
+                parseLocation();
+            }
+            
+            window.addEventListener('load', function() {
+                console.log('[OAuth] Window load event fired');
+            });
         })();
     </script>
 </body>
+</html>
 </html>

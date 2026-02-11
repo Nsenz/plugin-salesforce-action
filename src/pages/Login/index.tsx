@@ -40,18 +40,45 @@ export function Login() {
   const [environment, setEnvironment] = useState<Environment>('production');
 
   useEffect(() => {
+    console.log('[Login] Setting up message listener');
+    
     const handleMessage = (event: MessageEvent) => {
+      console.log('[Login] Message received:', {
+        type: event.data?.type,
+        origin: event.origin,
+        hasParams: !!event.data?.params,
+      });
+      
       if (event.data?.type === 'salesforce_auth' && event.data.params) {
-        authenticate({ ...event.data.params });
-        route('/');
+        console.log('[Login] Salesforce auth message received');
+        console.log('[Login] Auth params:', {
+          hasAccessToken: !!event.data.params.access_token,
+          hasId: !!event.data.params.id,
+          hasInstanceUrl: !!event.data.params.instance_url,
+          issuedAt: event.data.params.issued_at,
+        });
+        
+        try {
+          authenticate({ ...event.data.params });
+          console.log('[Login] Authentication successful, routing to home');
+          route('/');
+        } catch (error) {
+          console.error('[Login] Authentication failed:', error);
+        }
+      } else {
+        console.log('[Login] Ignoring message (not salesforce_auth or missing params)');
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+    return () => {
+      console.log('[Login] Removing message listener');
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [authenticate, route]);
 
   const handleAuthorize = () => {
+    console.log('[Login] Initiating Salesforce authorization for environment:', environment);
     openSalesforceAuth(environment);
   };
 

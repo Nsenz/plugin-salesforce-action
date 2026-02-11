@@ -26,12 +26,41 @@ export function openSalesforceAuth(environment: 'production' | 'sandbox' = 'prod
   const redirectUri = import.meta.env.VITE_REDIRECT_URI;
   const baseUrl = SALESFORCE_URLS[environment];
 
+  console.log('[Auth] Opening Salesforce OAuth popup');
+  console.log('[Auth] Environment:', environment);
+  console.log('[Auth] Client ID:', clientId ? `${clientId.substring(0, 20)}...` : 'MISSING');
+  console.log('[Auth] Redirect URI:', redirectUri);
+  console.log('[Auth] Base URL:', baseUrl);
+  console.log('[Auth] Current window origin:', window.location.origin);
+
   const params = new URLSearchParams({
     response_type: 'token',
     client_id: clientId,
     redirect_uri: redirectUri,
+    // Add prompt=login to force fresh authentication (prevents instant close on retry)
+    prompt: 'login',
   });
 
   const url = `${baseUrl}/services/oauth2/authorize?${params.toString()}`;
-  window.open(url, 'salesforce_auth', 'width=500,height=700');
+  const windowName = `salesforce_auth_${Date.now()}`;
+  
+  console.log('[Auth] Opening popup with name:', windowName);
+  console.log('[Auth] Full OAuth URL:', url);
+  
+  const popup = window.open(url, windowName, 'width=500,height=700,resizable=yes,scrollbars=yes');
+  
+  if (!popup) {
+    console.error('[Auth] Failed to open popup - popup may be blocked');
+  } else {
+    console.log('[Auth] Popup opened successfully');
+    console.log('[Auth] Popup closed status:', popup.closed);
+    
+    // Monitor popup status
+    const checkPopup = setInterval(() => {
+      if (popup.closed) {
+        console.log('[Auth] Popup was closed');
+        clearInterval(checkPopup);
+      }
+    }, 1000);
+  }
 }
