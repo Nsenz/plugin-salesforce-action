@@ -3,11 +3,6 @@ name: Build Plugin
 on:
   workflow_dispatch:
     inputs:
-      client_id:
-        description: 'Salesforce Client ID'
-        required: false
-        type: string
-      
       redirect_uri:
         description: 'Salesforce Redirect URI'
         required: false
@@ -34,15 +29,6 @@ jobs:
       - name: Setup environment variables
         run: |
           touch .env
-          
-          if [ -n "${{ inputs.client_id }}" ]; then
-            echo "VITE_CLIENT_ID=${{ inputs.client_id }}" >> .env
-          elif [ -n "${{ secrets.VITE_CLIENT_ID }}" ]; then
-            echo "VITE_CLIENT_ID=${{ secrets.VITE_CLIENT_ID }}" >> .env
-          else
-            echo "❌ Error: VITE_CLIENT_ID not provided (set as secret or workflow input)"
-            exit 1
-          fi
           
           if [ -n "${{ inputs.redirect_uri }}" ]; then
             echo "VITE_REDIRECT_URI=${{ inputs.redirect_uri }}" >> .env
